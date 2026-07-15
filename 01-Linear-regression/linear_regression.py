@@ -1,56 +1,85 @@
 import pandas as pd
 import numpy as np
+import math
+import os
 
+np.random.seed(0)
 
-raw_data = {
-    'area': [45.0, 60.5, np.nan, 85.0, 120.0, 55.0],
-    'rooms': [2, 3, 3, np.nan, 5, 2],
-    'condition': ['good', 'needs_renovation', 'good', 'premium', 'premium', 'good'],
-    'price_k': [400, 480, 500, 750, 1200, 450] 
-}
-
-df = pd.DataFrame(raw_data)
-
-df['area'] = df['area'].fillna(df['area'].mean())
-df['rooms'] = df['rooms'].fillna(df['rooms'].median())
+current_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(current_dir, 'apartments.csv')
+df = pd.read_csv(file_path)
 
 df = pd.get_dummies(df, columns=['condition'], drop_first=True, dtype=int)
-
-df['area'] = ((df['area'] - df['area'].mean()) / df['area'].std())
-df['rooms'] = ((df['rooms'] - df['rooms'].mean()) / df['rooms'].std())
 
 y = df['price_k'].values
 X = df.drop('price_k', axis=1).values
 
-ones = np.ones(X.shape[0])
 
-X = np.c_[ones, X]
+perm = np.random.permutation(X.shape[0])
+X_shuffled = X[perm]
+y_shuffled = y[perm]
 
-print(X.shape)
+split = math.floor(X.shape[0]*0.8)
 
+X_train = X_shuffled[:split]
+X_test = X_shuffled[split:]
 
-W = np.random.rand(X.shape[1])
+y_train = y_shuffled[:split]
+y_test = y_shuffled[split:]
 
-epochs = 50000
+mask = np.isnan(X_train[:, 0])
+area_mean_train = np.nanmean(X_train[:, 0])
+X_train[mask, 0] = area_mean_train
+
+mask = np.isnan(X_train[:, 1])
+room_median_train = np.nanmedian(X_train[:, 1])
+X_train[mask, 1] = room_median_train
+
+mask = np.isnan(X_test[:, 0])
+X_test[mask, 0] = area_mean_train
+
+mask = np.isnan(X_test[:, 1])
+X_test[mask, 1] = room_median_train
+
+area_std_train =  np.nanstd(X_train[:,0])
+room_std_train =  np.nanstd(X_train[:,1])
+
+room_mean_train = np.nanmean(X_train[:,1])
+
+X_train[:,0] = (X_train[:,0] - area_mean_train) / area_std_train  
+X_train[:,1] = (X_train[:,1] - room_mean_train) / room_std_train  
+X_test[:,0] = (X_test[:,0] - area_mean_train) / area_std_train  
+X_test[:,1] = (X_test[:,1] - room_mean_train) / room_std_train  
+
+ones = np.ones(X_train.shape[0])
+X_train = np.c_[ones, X_train]
+
+W = np.random.rand(X_train.shape[1])
+
+epochs = 10000
 learning_rate = 0.01
-n = X.shape[0]
+n = X_train.shape[0]
 
 for i in range(epochs):
     
-    y_hat = X @ W
-
-    loss = np.mean(((y_hat - y) **2))
-
-    gradient = (2/n) * (X.T @ (y_hat - y))
-    
+    y_hat = X_train @ W
+    loss_train = np.mean(((y_hat - y_train) **2))
+    gradient = (2/n) * (X_train.T @ (y_hat - y_train))
     W = W - (gradient * learning_rate)
 
-    if i % 1000 == 0:
-        print(f"Epoch {i} Loss: {loss:.2f}")
-
+    if i % 100 == 0:
+        print(f"Epoch {i} Loss: {loss_train:.2f}")
 
 print(f"Weights: {W}")
 
-final_predictions = X @ W
-print(f"\nReal prices: {y}")
-print(f"Predicted prices after learning: {final_predictions}")
+ones = np.ones(X_test.shape[0])
+X_test = np.c_[ones, X_test]
+
+y_hat = X_test @ W
+loss_test = np.mean(((y_hat - y_test) **2))
+mape = np.mean(np.abs((y_test - y_hat) / y_test)) * 100
+
+print(f"Loss: {loss_test}")
+print(f"Real prices: {y_test}")
+print(f"Predicted prices after learning {y_hat}")
+print(f"MAPE: {mape:.2f}%")
