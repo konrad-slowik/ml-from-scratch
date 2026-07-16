@@ -20,10 +20,8 @@ X_shuffled = X[perm]
 y_shuffled = y[perm]
 
 split = math.floor(X.shape[0]*0.8)
-
 X_train = X_shuffled[:split]
 X_test = X_shuffled[split:]
-
 y_train = y_shuffled[:split]
 y_test = y_shuffled[split:]
 
