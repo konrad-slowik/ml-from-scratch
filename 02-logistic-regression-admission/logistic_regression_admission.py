@@ -22,4 +22,24 @@ X_test = X_shuffled[split:]
 y_train = y_shuffled[:split]
 y_test = y_shuffled[split:]
 
+mask = np.isnan(X_train[:,0])
+hours_studied_mean = np.nanmean(X_train[:,0])
+X_train[mask,0] = hours_studied_mean
 
+mask = np.isnan(X_test[:,0])
+X_test[mask,0] = hours_studied_mean
+
+mask = np.isnan(X_train[:,1])
+test_exam_score_mean = np.nanmean(X_train[:,1])
+X_train[mask,1] = test_exam_score_mean
+
+mask = np.isnan(X_test[:,1])
+X_test[mask,1] = test_exam_score_mean
+
+hours_studied_std = np.std(X_train[:,0])
+test_exam_score_std = np.std(X_train[:,1])
+
+X_train[:,0] = (X_train[:,0] - hours_studied_mean) / hours_studied_std
+X_train[:,1] = (X_train[:,1] - test_exam_score_mean) / test_exam_score_std
+X_test[:,0] = (X_test[:,0] - hours_studied_mean) / hours_studied_std
+X_test[:,1] = (X_test[:,1] - test_exam_score_mean) / test_exam_score_std
