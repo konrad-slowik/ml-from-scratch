@@ -30,16 +30,50 @@ mask = np.isnan(X_test[:,0])
 X_test[mask,0] = hours_studied_mean
 
 mask = np.isnan(X_train[:,1])
-test_exam_score_mean = np.nanmean(X_train[:,1])
-X_train[mask,1] = test_exam_score_mean
+exam_score_mean = np.nanmean(X_train[:,1])
+X_train[mask,1] = exam_score_mean
 
 mask = np.isnan(X_test[:,1])
-X_test[mask,1] = test_exam_score_mean
+X_test[mask,1] = exam_score_mean
 
 hours_studied_std = np.std(X_train[:,0])
-test_exam_score_std = np.std(X_train[:,1])
+exam_score_std = np.std(X_train[:,1])
 
 X_train[:,0] = (X_train[:,0] - hours_studied_mean) / hours_studied_std
-X_train[:,1] = (X_train[:,1] - test_exam_score_mean) / test_exam_score_std
+X_train[:,1] = (X_train[:,1] - exam_score_mean) / exam_score_std
 X_test[:,0] = (X_test[:,0] - hours_studied_mean) / hours_studied_std
-X_test[:,1] = (X_test[:,1] - test_exam_score_mean) / test_exam_score_std
+X_test[:,1] = (X_test[:,1] - exam_score_mean) / exam_score_std
+
+ones = np.ones(X_train.shape[0])
+X_train = np.c_[ones,X_train]
+ones = np.ones(X_test.shape[0])
+X_test = np.c_[ones,X_test]
+
+W = np.random.rand(X_train.shape[1])
+
+def sigmoid(z):
+    prob = 1 / (1+ np.exp(-z))
+    return prob
+
+epochs = 10000
+n = X_train.shape[0]
+learning_rate = 0.001
+
+for i in range(epochs):
+    
+    z = X_train @ W
+    sigmoid_z = sigmoid(z)
+    loss = -np.mean(y_train * np.log(sigmoid_z) + (1-y_train) * np.log(1-sigmoid_z))
+    if i % 1000 == 0:
+        print(f"Loss:{loss} Epoch: {i}")
+    gradient = (1/n) * (X_train.T @ (sigmoid_z - y_train)) 
+    W = W - gradient * learning_rate
+
+z = X_test @ W
+sigmoid_z = sigmoid(z)
+y_pred = (sigmoid_z >= 0.5).astype(int)
+print(f"Test values: {y_test}")
+print(f"Pred values: {y_pred}")
+
+correct_percent = (np.count_nonzero(y_test == y_pred) / X_test.shape[0])*100
+print(f"Accuracy: {correct_percent:.2f}%")
